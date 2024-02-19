@@ -1,0 +1,32 @@
+{
+  "compilerOptions": {
+    "module": "commonjs",
+    "target": "es5",
+    "lib": ["esnext", "dom"],
+    "declaration": true,
+    "sourceMap": true,
+    "outDir": "./build",
+    "strict": true,
+    "noImplicitReturns": true,
+    "noImplicitThis": true,
+    "noImplicitAny": true,
+    "noFallthroughCasesInSwitch": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "moduleResolution": "node",
+    "jsx": "react-jsx",
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "types": ["@types/react", "@types/react-dom"]
+  },
+  "include": ["src/lib"],
+  "exclude": [
+    "*/**/__test__",
+    "__tests__",
+    "build",
+    "*/**/*.stories.tsx",
+    "*/**/*.test.tsx"
+  ]
+}

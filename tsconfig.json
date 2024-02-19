@@ -19,7 +19,7 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "types": ["@types/react", "@types/react-dom"]
+    "types": ["@types/react", "@types/react-dom", "@types/bun"]
   },
   "include": ["src/lib"],
   "exclude": [

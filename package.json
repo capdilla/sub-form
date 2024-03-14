@@ -1,8 +1,6 @@
 {
-  "name": "experimental-sub-form",
-  "private": true,
+  "name": "sub-form",
   "version": "0.0.1",
-  "type": "module",
   "scripts": {
     "dev": "bun --bun vite",
     "build": "rm -rf build 2> /dev/null && tsc && bun run scripts/post-build.js",

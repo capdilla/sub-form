@@ -1,6 +1,6 @@
-import { useCallback, useMemo } from "react";
+import { useCallback, useEffect, useMemo } from "react";
 
-import { useSubState } from "../useSubState/useSubState";
+import { SubState, useSubState } from "../useSubState/useSubState";
 import { Field, FormState, ValidationResult } from "../../interfaces/Field";
 
 const FIELD_REQUIRED = "FIELD_REQUIRED";
@@ -11,7 +11,11 @@ type GetFormState<T> = {
 };
 
 export interface FormProps<T> {
-  defaultState: T;
+  defaultState?: T;
+  onFormChange: (
+    formState: FormState<T>,
+    formObserver: SubState<FormState<T>>
+  ) => void;
   fields: Field<T>[];
 }
 
@@ -59,8 +63,8 @@ const validateField = <T>(
 };
 
 const createDefaultState = <T>(
-  defaultState: T,
-  fields: FormProps<T>["fields"]
+  fields: FormProps<T>["fields"],
+  defaultState?: Partial<T>
 ): FormState<T> => {
   if (!defaultState) {
     return {} as FormState<T>;
@@ -80,6 +84,10 @@ const createDefaultState = <T>(
   }, {} as FormState<T>);
 
   const fullState = Object.entries(state).reduce((acc, [key, value]) => {
+    if (!indexedFields[key]) {
+      return acc;
+    }
+
     acc[key as keyof T] = {
       // eslint-disable-next-line @typescript-eslint/ban-ts-comment
       //@ts-expect-error
@@ -96,8 +104,15 @@ const createDefaultState = <T>(
 
 export function useForm<T>(props: FormProps<T>): UseFormValue<T> {
   const formState = useSubState<FormState<T>>(
-    createDefaultState(props.defaultState, props.fields)
+    createDefaultState(props.fields, props.defaultState)
   );
+
+  useEffect(() => {
+    if (!props.onFormChange) return;
+    formState.stateObserver.current.subscribeToAll((newState: FormState<T>) => {
+      props.onFormChange(newState, formState);
+    });
+  }, []);
 
   const onFieldChange = useCallback(
     (field: Field<T>, value: unknown) => {
@@ -171,7 +186,7 @@ export function useForm<T>(props: FormProps<T>): UseFormValue<T> {
     },
     updateFormState: (newState) =>
       formState.stateObserver.current.setState(
-        createDefaultState(newState as T, props.fields)
+        createDefaultState(props.fields, newState as T)
       ),
     setShowValidation: (showValidation) => {
       const newState = getEntries().reduce((acc, [key, value]) => {

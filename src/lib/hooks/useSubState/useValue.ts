@@ -45,9 +45,19 @@ export function useValue<T, S, K extends keyof S = keyof S>({
   defaultValue,
   observeValue,
 }: ValueProps<T, S, K>): UseValueResult<T> | UseValueResult<State<S>[K]> {
-  const [value, setValue] = useState<T | undefined>(
-    defaultValue || stateObserver.getDefaultValue(key as string)
-  );
+  const getDefaultValue = () => {
+    if (defaultValue) {
+      return defaultValue;
+    }
+
+    if (observeValue) {
+      return observeValue(stateObserver.getDefaultValue(key as string));
+    }
+
+    return stateObserver.getDefaultValue(key as string);
+  };
+
+  const [value, setValue] = useState<T | undefined>(getDefaultValue());
 
   useEffect(() => {
     const setFirstValue = () => {

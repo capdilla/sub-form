@@ -48,8 +48,4 @@ export class CreateSubState<S> {
       defaultValue,
     });
   }
-
-  get() {
-    return this.observer;
-  }
 }

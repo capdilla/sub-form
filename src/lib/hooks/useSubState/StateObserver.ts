@@ -50,7 +50,7 @@ export class StateObserver<T> {
     return this.state[key];
   }
 
-  setKeyState(key: keyof T, value: unknown) {
+  setKeyState(key: keyof T, value?: T[keyof T]) {
     this.state = {
       ...this.state,
       [key]: value,

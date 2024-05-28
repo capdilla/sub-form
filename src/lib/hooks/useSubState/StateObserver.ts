@@ -2,10 +2,8 @@ type Fn<V> = (value: V) => void;
 
 export class StateObserver<T> {
   state: T;
-
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   subscribers: Map<string, Fn<any>[]>;
-
   //subscribe to all keys
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   allKeysSubscribers: Fn<any>[];
@@ -14,6 +12,14 @@ export class StateObserver<T> {
     this.subscribers = new Map();
     this.allKeysSubscribers = [];
     this.state = defaultState;
+
+    // Bind all methods to ensure they don't lose context
+    this.subscribe = this.subscribe.bind(this);
+    this.subscribeToAll = this.subscribeToAll.bind(this);
+    this.unsubscribe = this.unsubscribe.bind(this);
+    this.getDefaultValue = this.getDefaultValue.bind(this);
+    this.setKeyState = this.setKeyState.bind(this);
+    this.setState = this.setState.bind(this);
   }
 
   subscribe<V>(name: string, fn: Fn<V>) {

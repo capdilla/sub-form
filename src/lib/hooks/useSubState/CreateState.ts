@@ -5,12 +5,15 @@ type UseValueParams<S, K extends keyof S, T> = {
   key: K;
   observeValue?: (state: S[K]) => T;
   defaultValue?: T;
+  deepEqual?: (a: unknown, b: unknown) => boolean;
 };
 
 export class CreateSubState<S> {
   observer: StateObserver<S>;
   constructor(defaultState: S) {
     this.observer = new StateObserver<S>(defaultState);
+
+    this.useValue = this.useValue.bind(this);
   }
 
   //Just with key return State[S[K]
@@ -40,12 +43,14 @@ export class CreateSubState<S> {
     key,
     observeValue,
     defaultValue,
+    deepEqual,
   }: UseValueParams<S, K, T>): UseValueResult<S[K]> | UseValueResult<T> {
     return valueBase({
       key,
       stateObserver: this.observer,
       observeValue,
       defaultValue,
+      deepEqual,
     });
   }
 }

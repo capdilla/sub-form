@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { StateObserver } from "./StateObserver";
-import { deepEqual } from "../../utils/deepEqual";
+import { deepEqual as deepEqualBase } from "../../utils/deepEqual";
 
 type State<S> = StateObserver<S>["state"];
 
@@ -13,6 +13,7 @@ export interface ValueProps<T, S, K extends keyof S = keyof S>
   extends KeyObserver<S, K> {
   observeValue?: (state: State<S>[K]) => T;
   defaultValue?: T;
+  deepEqual?: (a: unknown, b: unknown) => boolean;
 }
 
 export interface UseValueResult<T> {
@@ -44,6 +45,7 @@ export function useValue<T, S, K extends keyof S = keyof S>({
   stateObserver,
   defaultValue,
   observeValue,
+  deepEqual = deepEqualBase,
 }: ValueProps<T, S, K>): UseValueResult<T> | UseValueResult<State<S>[K]> {
   const getDefaultValue = () => {
     if (defaultValue) {

@@ -3,7 +3,7 @@ type Fn<V> = (value: V) => void;
 export class StateObserver<T> {
   state: T;
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  subscribers: Map<string, Fn<any>[]>;
+  subscribers: Map<keyof T, Fn<any>[]>;
   //subscribe to all keys
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   allKeysSubscribers: Fn<any>[];
@@ -22,7 +22,7 @@ export class StateObserver<T> {
     this.setState = this.setState.bind(this);
   }
 
-  subscribe<V>(name: string, fn: Fn<V>) {
+  subscribe<K extends keyof T>(name: K, fn: Fn<T[K]>) {
     if (!this.subscribers.has(name)) {
       this.subscribers.set(name, [fn]);
     } else {
@@ -39,7 +39,7 @@ export class StateObserver<T> {
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
-  unsubscribe({ keyName, fn }: { keyName?: string; fn: Fn<any> }) {
+  unsubscribe({ keyName, fn }: { keyName?: keyof T; fn: Fn<any> }) {
     if (keyName) {
       this.subscribers.set(
         keyName,
@@ -56,13 +56,13 @@ export class StateObserver<T> {
     return this.state[key];
   }
 
-  setKeyState(key: keyof T, value?: T[keyof T]) {
+  setKeyState<K extends keyof T>(key: K, value?: T[K]) {
     this.state = {
       ...this.state,
       [key]: value,
     };
 
-    this.subscribers.get(key as string)?.forEach((fn) => {
+    this.subscribers.get(key)?.forEach((fn) => {
       fn(value);
     });
 
@@ -79,7 +79,7 @@ export class StateObserver<T> {
 
     if (newState instanceof Object) {
       Object.keys(newState).forEach((key) => {
-        this.subscribers.get(key)?.forEach((fn) => {
+        this.subscribers.get(key as keyof T)?.forEach((fn) => {
           // eslint-disable-next-line @typescript-eslint/ban-ts-comment
           //@ts-ignore
           fn(newState[key]);

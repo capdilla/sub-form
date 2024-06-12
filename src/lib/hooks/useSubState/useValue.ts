@@ -13,7 +13,8 @@ export interface ValueProps<T, S, K extends keyof S = keyof S>
   extends KeyObserver<S, K> {
   observeValue?: (state: State<S>[K]) => T;
   defaultValue?: T;
-  deepEqual?: (a: unknown, b: unknown) => boolean;
+  deepEqual?: false | ((a: unknown, b: unknown) => boolean);
+  deps?: readonly unknown[];
 }
 
 export interface UseValueResult<T> {
@@ -45,8 +46,11 @@ export function useValue<T, S, K extends keyof S = keyof S>({
   stateObserver,
   defaultValue,
   observeValue,
-  deepEqual = deepEqualBase,
+  deepEqual,
+  deps = [],
 }: ValueProps<T, S, K>): UseValueResult<T> | UseValueResult<State<S>[K]> {
+  const deepEqualFn = deepEqual ?? deepEqualBase;
+
   const getDefaultValue = () => {
     if (defaultValue) {
       return defaultValue;
@@ -73,14 +77,20 @@ export function useValue<T, S, K extends keyof S = keyof S>({
 
     setFirstValue();
 
-    const sub = stateObserver.subscribe<T>(key as string, (data) => {
-      const observedValue = observeValue && observeValue(data as S[K]);
+    const sub = stateObserver.subscribe(key, (data) => {
+      const observedValue = observeValue && observeValue(data);
 
-      const newValue =
-        typeof observedValue !== "undefined" ? observedValue : data;
+      const newValue = (
+        typeof observedValue !== "undefined" ? observedValue : data
+      ) as T;
+
+      if (deepEqual === false || !deepEqualFn) {
+        setValue(newValue);
+        return;
+      }
 
       setValue((prevState) => {
-        if (!deepEqual(newValue, prevState)) {
+        if (!deepEqualFn(newValue, prevState)) {
           return newValue;
         }
 
@@ -93,6 +103,28 @@ export function useValue<T, S, K extends keyof S = keyof S>({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  //Execute when deps change
+  useEffect(() => {
+    const defaultValue = stateObserver.getDefaultValue(key as string);
+
+    const observedValue = observeValue && observeValue(defaultValue);
+    const newValue =
+      typeof observedValue !== "undefined" ? observedValue : defaultValue;
+
+    if (deepEqual === false || !deepEqualFn) {
+      setValue(newValue);
+      return;
+    }
+
+    setValue((prevState) => {
+      if (!deepEqualFn(newValue, prevState)) {
+        return newValue;
+      }
+
+      return prevState;
+    });
+  }, deps);
 
   return { value } as UseValueResult<T> | UseValueResult<State<S>[K]>;
 }

@@ -1,12 +1,17 @@
 import { StateObserver } from "./StateObserver";
-import { UseValueResult, useValue as valueBase } from "./useValue";
+import { UseValueResult, ValueProps, useValue as valueBase } from "./useValue";
 
-type UseValueParams<S, K extends keyof S, T> = {
-  key: K;
-  observeValue?: (state: S[K]) => T;
-  defaultValue?: T;
-  deepEqual?: (a: unknown, b: unknown) => boolean;
-};
+// type UseValueParams<S, K extends keyof S, T> = {
+//   key: K;
+//   observeValue?: (state: S[K], prev?: T) => T;
+//   defaultValue?: T;
+//   deepEqual?: (a: unknown, b: unknown) => boolean;
+//   deps?: unknown[];
+// };
+type UseValueParams<S, K extends keyof S, T> = Omit<
+  ValueProps<T, S, K>,
+  "stateObserver"
+>;
 
 export class CreateSubState<S> {
   observer: StateObserver<S>;
@@ -44,6 +49,7 @@ export class CreateSubState<S> {
     observeValue,
     defaultValue,
     deepEqual,
+    deps,
   }: UseValueParams<S, K, T>): UseValueResult<S[K]> | UseValueResult<T> {
     return valueBase({
       key,
@@ -51,6 +57,7 @@ export class CreateSubState<S> {
       observeValue,
       defaultValue,
       deepEqual,
+      deps,
     });
   }
 }

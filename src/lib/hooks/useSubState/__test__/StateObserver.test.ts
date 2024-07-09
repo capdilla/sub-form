@@ -111,4 +111,84 @@ describe("StateObserver", () => {
     expect(notifiedValue).toBe(value);
     expect(fn).toHaveBeenCalled();
   });
+
+  test("should work setKeyState and restore the value", (done) => {
+    const stateObserver = new StateObserver({ key: "initialValue" });
+
+    let updatedValueHasBeenCalled = false;
+    let restoreValueHasBeenCalled = false;
+
+    stateObserver.state.key = "restoreValue";
+
+    stateObserver.subscribe("key", (newValue) => {
+      console.log("newValue", newValue);
+      if (newValue === "updatedValue") {
+        updatedValueHasBeenCalled = true;
+      }
+
+      if (newValue === "restoreValue") {
+        restoreValueHasBeenCalled = true;
+      }
+    });
+
+    const restore = stateObserver.setKeyState("key", "updatedValue");
+
+    setTimeout(() => {
+      restore();
+
+      expect(updatedValueHasBeenCalled).toBeTrue();
+      expect(restoreValueHasBeenCalled).toBeTrue();
+
+      done();
+    }, 1000);
+  });
+
+  test("should work setOptimisticState and restore the value", (done) => {
+    const stateObserver = new StateObserver({
+      key: "initialValue",
+      key2: "initialValue2",
+    });
+
+    const checks = {
+      key: {
+        updatedValueHasBeenCalled: false,
+        restoreValueHasBeenCalled: false,
+      },
+      key2: {
+        updatedValueHasBeenCalled: false,
+        restoreValueHasBeenCalled: false,
+      },
+    };
+
+    stateObserver.state.key = "restoreValue";
+    stateObserver.state.key2 = "restoreValue";
+
+    stateObserver.subscribeToAll((newValue) => {
+      Object.entries(newValue).forEach(([key, value]) => {
+        if (value === "updatedValue") {
+          checks[key].updatedValueHasBeenCalled = true;
+        }
+
+        if (value === "restoreValue") {
+          checks[key].restoreValueHasBeenCalled = true;
+        }
+      });
+    });
+
+    const restore = stateObserver.setState({
+      key: "updatedValue",
+      key2: "updatedValue",
+    });
+
+    setTimeout(() => {
+      restore();
+
+      Object.keys(checks).forEach((key) => {
+        expect(checks[key].updatedValueHasBeenCalled).toBeTrue();
+        expect(checks[key].restoreValueHasBeenCalled).toBeTrue();
+      });
+
+      done();
+    }, 1000);
+  });
 });

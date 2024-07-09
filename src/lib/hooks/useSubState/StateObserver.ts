@@ -32,7 +32,7 @@ export class StateObserver<T> {
     return { keyName: name, fn };
   }
 
-  subscribeToAll<V>(fn: Fn<V>) {
+  subscribeToAll(fn: Fn<T>) {
     this.allKeysSubscribers.push(fn);
 
     return { fn };
@@ -57,38 +57,58 @@ export class StateObserver<T> {
   }
 
   setKeyState<K extends keyof T>(key: K, value?: T[K]) {
-    this.state = {
-      ...this.state,
-      [key]: value,
+    const setState = (newValue?: T[K]) => {
+      this.state = {
+        ...this.state,
+        [key]: newValue,
+      };
+
+      this.subscribers.get(key)?.forEach((fn) => {
+        fn(newValue);
+      });
+
+      this.allKeysSubscribers.forEach((fn) => {
+        fn(this.state);
+      });
     };
 
-    this.subscribers.get(key)?.forEach((fn) => {
-      fn(value);
-    });
+    const backupValue = this.state[key];
 
-    this.allKeysSubscribers.forEach((fn) => {
-      fn(this.state);
-    });
+    setState(value);
+
+    return () => {
+      setState(backupValue);
+    };
   }
 
   setState<K extends keyof T>(newState: Pick<T, K> | T) {
-    this.state = {
-      ...this.state,
-      ...newState,
+    const setState = (_newState: Pick<T, K> | T) => {
+      this.state = {
+        ...this.state,
+        ..._newState,
+      };
+
+      if (_newState instanceof Object) {
+        Object.keys(_newState).forEach((key) => {
+          this.subscribers.get(key as keyof T)?.forEach((fn) => {
+            // eslint-disable-next-line @typescript-eslint/ban-ts-comment
+            //@ts-ignore
+            fn(_newState[key]);
+          });
+        });
+      }
+
+      this.allKeysSubscribers.forEach((fn) => {
+        fn(this.state);
+      });
     };
 
-    if (newState instanceof Object) {
-      Object.keys(newState).forEach((key) => {
-        this.subscribers.get(key as keyof T)?.forEach((fn) => {
-          // eslint-disable-next-line @typescript-eslint/ban-ts-comment
-          //@ts-ignore
-          fn(newState[key]);
-        });
-      });
-    }
+    const backupState = { ...this.state };
 
-    this.allKeysSubscribers.forEach((fn) => {
-      fn(this.state);
-    });
+    setState(newState);
+
+    return () => {
+      setState(backupState);
+    };
   }
 }

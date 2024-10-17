@@ -28,8 +28,8 @@ describe("StateObserver", () => {
     const observer = new StateObserver({ key1: "value1" });
     const callback = jest.fn();
 
-    const subscription = observer.subscribe("key1", callback);
-    observer.unsubscribe(subscription);
+    const unsubscribe = observer.subscribe("key1", callback);
+    unsubscribe();
     observer.setKeyState("key1", "updatedValue");
 
     expect(callback).not.toHaveBeenCalled();
@@ -54,8 +54,8 @@ describe("StateObserver", () => {
     const observer = new StateObserver({ key1: "value1" });
     const callback = jest.fn();
 
-    const subscription = observer.subscribe("key2", callback);
-    observer.unsubscribe(subscription);
+    const unsubscribe = observer.subscribe("key2", callback);
+    unsubscribe();
     //@ts-ignore
     observer.setKeyState("key2", "updatedValue");
 

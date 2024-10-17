@@ -1,6 +1,6 @@
 {
   "name": "sub-form",
-  "version": "0.0.5",
+  "version": "0.0.7",
   "scripts": {
     "dev": "bun --bun vite",
     "build": "rm -rf build 2> /dev/null && tsc && bun run scripts/post-build.js",

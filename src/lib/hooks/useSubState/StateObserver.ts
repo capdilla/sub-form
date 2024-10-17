@@ -29,13 +29,13 @@ export class StateObserver<T> {
       this.subscribers.get(name)?.push(fn);
     }
 
-    return { keyName: name, fn };
+    return () => this.unsubscribe({ keyName: name, fn });
   }
 
   subscribeToAll(fn: Fn<T>) {
     this.allKeysSubscribers.push(fn);
 
-    return { fn };
+    return () => this.unsubscribe({ fn });
   }
 
   // eslint-disable-next-line @typescript-eslint/no-explicit-any

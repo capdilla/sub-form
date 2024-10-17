@@ -11,8 +11,8 @@ type GetFormState<T> = {
 };
 
 export interface FormProps<T> {
-  defaultState?: T;
-  onFormChange: (
+  defaultState: T;
+  onFormChange?: (
     formState: FormState<T>,
     formObserver: SubState<FormState<T>>
   ) => void;
@@ -72,6 +72,12 @@ const createDefaultState = <T>(
 
   const indexedFields = fields.reduce((acc, field) => {
     acc[field.name as string] = field;
+
+    // add at default value if not present
+    if (!(field.name in defaultState)) {
+      defaultState[field.name] = "" as T[keyof T];
+    }
+
     return acc;
   }, {} as Record<string, Field<T>>);
 
@@ -108,10 +114,20 @@ export function useForm<T>(props: FormProps<T>): UseFormValue<T> {
   );
 
   useEffect(() => {
-    if (!props.onFormChange) return;
-    formState.stateObserver.current.subscribeToAll((newState: FormState<T>) => {
-      props.onFormChange(newState, formState);
-    });
+    if (!props.onFormChange) {
+      return;
+    }
+    const unsubscribe = formState.stateObserver.current.subscribeToAll(
+      (newState: FormState<T>) => {
+        if (props.onFormChange) {
+          props.onFormChange(newState, formState);
+        }
+      }
+    );
+
+    return () => {
+      unsubscribe();
+    };
   }, []);
 
   const onFieldChange = useCallback(
@@ -133,26 +149,29 @@ export function useForm<T>(props: FormProps<T>): UseFormValue<T> {
     [formState]
   );
 
-  const fields = useMemo(
-    () =>
-      props.fields.reduce((acc, field) => {
-        acc[field.name] = {
-          ...field,
-          componentProps: {
-            ...field.componentProps,
-            onChange: (value: unknown) => {
-              onFieldChange(field, value);
-            },
-            value: {
-              key: field.name,
-              stateObserver: formState.stateObserver.current,
-            },
+  const fields = useMemo(() => {
+    // recreate state if fields change
+    formState.stateObserver.current.setState(
+      createDefaultState(props.fields, props.defaultState)
+    );
+
+    return props.fields.reduce((acc, field) => {
+      acc[field.name] = {
+        ...field,
+        componentProps: {
+          ...field.componentProps,
+          onChange: (value: unknown) => {
+            onFieldChange(field, value);
           },
-        };
-        return acc;
-      }, {} as Record<keyof T, Field<T>>),
-    [formState, onFieldChange, props.fields]
-  );
+          value: {
+            key: field.name,
+            stateObserver: formState.stateObserver.current,
+          },
+        },
+      };
+      return acc;
+    }, {} as Record<keyof T, Field<T>>);
+  }, [formState, onFieldChange, props.fields, props.defaultState]);
 
   const getEntries = useCallback(() => {
     const entries = Object.entries<{

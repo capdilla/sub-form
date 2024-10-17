@@ -77,7 +77,7 @@ export function useValue<T, S, K extends keyof S = keyof S>({
 
     setFirstValue();
 
-    const sub = stateObserver.subscribe(key, (data) => {
+    const unsubscribe = stateObserver.subscribe(key, (data) => {
       const observedValue = observeValue && observeValue(data);
 
       const newValue = (
@@ -99,7 +99,7 @@ export function useValue<T, S, K extends keyof S = keyof S>({
     });
 
     return () => {
-      stateObserver.unsubscribe(sub);
+      unsubscribe();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);

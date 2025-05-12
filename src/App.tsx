@@ -5,7 +5,13 @@ import { components } from "./components/Fields";
 import { TestSubState, TestUseState } from "./components/TestSubState";
 // import { TestSubState } from "./components/TestSubState";
 
-import { createFormInstance, FormWrapper } from "./lib";
+import {
+  createFormInstance,
+  FormWrapper,
+  FormCore,
+  useWatchForm,
+  CreateSubState,
+} from "./lib";
 
 const { createForm } = createFormInstance({ components });
 
@@ -13,6 +19,8 @@ interface Form {
   name: string;
   surname: string;
   age?: number;
+
+  check: boolean;
 }
 
 const { createField, useForm } = createForm<Form>();
@@ -73,8 +81,43 @@ const form2 = [
   }),
 ];
 
+const BlockButton = ({ formCore }: { formCore: FormCore<Form> }) => {
+  const { fields } = useWatchForm(formCore);
+
+  console.log(fields);
+
+  const isFormValid = useWatchForm(formCore, {
+    mapValue: (values) => {
+      return values.isFormValid;
+    },
+  });
+
+  const yourAge = useWatchForm(formCore, {
+    mapValue: (values) => {
+      return `tu edad es: ${values?.fields?.age?.value || ""}`;
+    },
+  });
+
+  // console.log(fields, "fifififif");
+
+  return (
+    <button disabled={!isFormValid}>Only when form is valid ,{yourAge}</button>
+  );
+};
+
+interface St {
+  person: {
+    name: string;
+    surname: string;
+  };
+}
+const state = new CreateSubState<St>({
+  person: { name: "hola", surname: "mundo" },
+});
+
 function App() {
   const [form, setForm] = useState(1);
+  const [val, setVal] = useState("");
 
   useEffect(() => {
     setTimeout(() => {
@@ -84,13 +127,26 @@ function App() {
 
   const {
     fields,
+    core,
     getFormValues,
     updateFormState,
     getFormState,
     setShowValidation,
     revalidateForm,
   } = useForm({
-    defaultState: { name: "", surname: "mundo" },
+    onFormChange: (formState) => {
+      state.observer.setKeyState("person", {
+        name: formState.name.value,
+        surname: formState.surname.value,
+      });
+    },
+
+    defaultState: {
+      name: form.toString(),
+      surname: "mundo",
+      check: false,
+    },
+
     fields: form === 1 ? form1 : form2,
   });
 
@@ -107,9 +163,17 @@ function App() {
     setShowValidation(true);
   };
 
+  // const { value: person } = state.useValue({
+  //   key: "person",
+  // });
+
   return (
     <>
       <FormWrapper fields={fields} />
+
+      {/* <div>
+        {person.name} {person.surname}
+      </div> */}
 
       <button onClick={getValue}>Submit</button>
       <button onClick={stttt}>random</button>
@@ -117,6 +181,8 @@ function App() {
       <button onClick={revalidateForm.bind(null, { showValidation: true })}>
         Re validate form
       </button>
+
+      <BlockButton formCore={core} />
     </>
   );
 }

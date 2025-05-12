@@ -5,7 +5,7 @@ import { Field, FormState, ValidationResult } from "../../interfaces/Field";
 
 const FIELD_REQUIRED = "FIELD_REQUIRED";
 
-type GetFormState<T> = {
+export type GetFormState<T> = {
   isFormValid: boolean;
   fields: FormState<T>;
 };
@@ -19,8 +19,11 @@ export interface FormProps<T> {
   fields: Field<T>[];
 }
 
+export type FormCore<T> = SubState<FormState<T>>;
+
 export interface UseFormValue<T> {
   fields: Record<keyof T, Field<T>>;
+  core: FormCore<T>;
   getFormState: () => GetFormState<T>;
   getFormValues: () => { values: T; isFormValid: boolean };
   updateFormState: <K extends keyof T>(newState: T | Pick<T, K>) => void;
@@ -188,6 +191,7 @@ export function useForm<T>(props: FormProps<T>): UseFormValue<T> {
 
   return {
     fields,
+    core: formState,
     getFormState: () => {
       return {
         isFormValid: isFormValid(),

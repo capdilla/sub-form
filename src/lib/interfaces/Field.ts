@@ -1,9 +1,8 @@
 import { Value } from "./Value";
 
-export type FormState<T> = Record<
-  keyof T,
-  { value: T[keyof T]; validation?: ValidationResult }
->;
+export type FormState<T> = {
+  [K in keyof T]: { value: T[K]; validation?: ValidationResult };
+};
 
 type ComponentProps<C> = {
   onChange: (value: unknown) => void;

@@ -35,6 +35,6 @@ jobs:
         run: bun run build
 
       - name: Publish to NPM
-        run: bun npm publish
+        run: npm publish
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}

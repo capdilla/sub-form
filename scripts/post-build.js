@@ -14,11 +14,21 @@ const buildPackageJson = (config) => {
   const newPackageJson = { ...config.packageJson };
 
   delete newPackageJson.scripts;
+  delete newPackageJson.devDependencies;
+  delete newPackageJson.dependencies;
 
   const slash = config.srcPath === "" ? "" : "/";
 
-  newPackageJson.main = `${config.srcPath}${slash}index.js`;
+  newPackageJson.main = `${config.srcPath}${slash}index.cjs`;
+  newPackageJson.module = `${config.srcPath}${slash}index.js`;
   newPackageJson.types = `${config.srcPath}${slash}index.d.ts`;
+  newPackageJson.exports = {
+    ".": {
+      types: newPackageJson.types,
+      import: newPackageJson.module,
+      require: newPackageJson.main,
+    },
+  };
 
   Bun.write(
     `${config.destPath}/package.json`,
@@ -27,8 +37,6 @@ const buildPackageJson = (config) => {
 };
 
 const packageJson = JSON.parse(await Bun.file("package.json").text());
-
-delete packageJson["devDependencies"];
 
 buildPackageJson({
   destPath: "build",

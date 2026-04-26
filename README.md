@@ -26,8 +26,8 @@ Additionally, it includes a library to handle global state efficiently, optimizi
 
 To get started, follow these steps:
 
-1. Install the library using npm or yarn: `npm install sub-form`
-2. Import the library in your React project: `import { useForm } from "sub-form"`
+1. Install the library using npm or yarn: `npm install sub-formx`
+2. Import the library in your React project: `import { useForm } from "sub-formx"`
 3. Check how to create a new form [How to create a form](#example-of-how-to-use-a-form)
 4. Check how to handle a state [How to handle global states](#how-to-use-substate)
 
@@ -87,7 +87,7 @@ Define your components
 ```tsx
 // Input.tsx
 import { memo } from "react";
-import { Value, useValue } from "sub-form";
+import { Value, useValue } from "sub-formx";
 
 export interface InputProps extends Omit<Primitives, "value" | "onChange"> {
   onChange: (value: string) => void;
@@ -114,7 +114,7 @@ A more advance implementation
 ```tsx
 // Input.tsx
 import { memo } from "react";
-import { Value, useValue } from "sub-form";
+import { Value, useValue } from "sub-formx";
 
 type Primitives = React.DetailedHTMLProps<
   React.InputHTMLAttributes<HTMLInputElement>,
@@ -203,7 +203,7 @@ Create a form instance with your components dictionary. This allows you to maint
 // form.tsx
 import { components } from "./components";
 
-import { createFormInstance } from "sub-form";
+import { createFormInstance } from "sub-formx";
 
 export const { createForm } = createFormInstance({ components });
 ```
@@ -213,7 +213,7 @@ export const { createForm } = createFormInstance({ components });
 Create a new form
 
 ```tsx
-import { FormWrapper } from "sub-form";
+import { FormWrapper } from "sub-formx";
 
 import { createForm } from "./form";
 
@@ -340,7 +340,7 @@ The state manager, sub-state, helps create a global state without the need for t
 
 ```tsx
 // state/index.ts
-import { CreateSubState } from "sub-form";
+import { CreateSubState } from "sub-formx";
 
 interface AppState {
   name: string;
@@ -494,7 +494,7 @@ const UserView = () => {
 lets suppose that for some reason you need to emit an event to other component, and do something in that moment
 
 ```tsx
-import { CreateSubState } from "sub-form";
+import { CreateSubState } from "sub-formx";
 
 interface AppState {
   name: string;

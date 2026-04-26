@@ -25,6 +25,11 @@ jobs:
       - name: Run tests
         run: bun run test
 
+      - name: Enforce coverage threshold
+        run: bun run test:coverage:ci
+        env:
+          COVERAGE_MIN: "90"
+
       - name: Build package
         run: bun run build
 

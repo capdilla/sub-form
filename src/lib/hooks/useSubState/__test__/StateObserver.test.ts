@@ -1,194 +1,311 @@
-/* eslint-disable @typescript-eslint/ban-ts-comment */
-import { test, describe, expect, jest } from "bun:test";
+import { test, describe, expect } from "bun:test";
 
 import { StateObserver } from "..";
 
 describe("StateObserver", () => {
-  // can create a new instance of StateObserver with a default state
-  test("should create a new instance of StateObserver with a default state", () => {
-    const defaultState = { key1: "value1", key2: "value2" };
-    const observer = new StateObserver(defaultState);
-
-    expect(observer.state).toEqual(defaultState);
+  // ============ Basics ============
+  test("should create an instance with default state", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    expect(observer.state).toEqual({ name: "John", age: 30 });
   });
 
-  // can subscribe to a key and receive updates when the key state changes
-  test("should subscribe to a key and receive updates when the key state changes", () => {
-    const observer = new StateObserver({ key1: "value1" });
-    const callback = jest.fn();
-
-    observer.subscribe("key1", callback);
-    observer.setKeyState("key1", "updatedValue");
-
-    expect(callback).toHaveBeenCalled();
+  test("getDefaultValue should return the correct value for a key", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    expect(observer.getDefaultValue("name")).toBe("John");
+    expect(observer.getDefaultValue("age")).toBe(30);
   });
 
-  // can unsubscribe from a key and stop receiving updates
-  test("should unsubscribe from a key and stop receiving updates", () => {
-    const observer = new StateObserver({ key1: "value1" });
-    const callback = jest.fn();
+  // ============ setState ============
+  test("setState should update multiple keys at once", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    observer.setState({ name: "Jane", age: 25 });
+    expect(observer.state.name).toBe("Jane");
+    expect(observer.state.age).toBe(25);
+  });
 
-    const unsubscribe = observer.subscribe("key1", callback);
+  test("setState should return a revert function", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    const revert = observer.setState({ name: "Jane" });
+    expect(observer.state.name).toBe("Jane");
+    revert();
+    expect(observer.state.name).toBe("John");
+  });
+
+  test("setState should create immutable state (new object reference)", () => {
+    const observer = new StateObserver({ name: "John" });
+    const oldState = observer.state;
+    observer.setState({ name: "Jane" });
+    expect(observer.state).not.toBe(oldState);
+  });
+
+  // ============ setKeyState ============
+  test("setKeyState should update a single key", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    observer.setKeyState("name", "Jane");
+    expect(observer.state.name).toBe("Jane");
+    expect(observer.state.age).toBe(30);
+  });
+
+  test("setKeyState should accept undefined value", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    observer.setKeyState("name", undefined);
+    expect(observer.state.name).toBe(undefined);
+  });
+
+  test("setKeyState should return a revert function for optimistic updates", () => {
+    const observer = new StateObserver({ liked: false });
+    const revert = observer.setKeyState("liked", true);
+    expect(observer.state.liked).toBe(true);
+    revert();
+    expect(observer.state.liked).toBe(false);
+  });
+
+  test("setKeyState should handle complex objects", () => {
+    const observer = new StateObserver({ user: { name: "John", age: 30 } });
+    observer.setKeyState("user", { name: "Jane", age: 25 });
+    expect(observer.state.user).toEqual({ name: "Jane", age: 25 });
+  });
+
+  // ============ subscribe ============
+  test("subscribe should call callback when specific key changes", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    let callCount = 0;
+    let lastValue: unknown;
+
+    observer.subscribe("name", (value) => {
+      callCount++;
+      lastValue = value;
+    });
+
+    observer.setKeyState("name", "Jane");
+    expect(callCount).toBe(1);
+    expect(lastValue).toBe("Jane");
+  });
+
+  test("subscribe should NOT call callback when different key changes", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    let callCount = 0;
+
+    observer.subscribe("name", () => {
+      callCount++;
+    });
+
+    observer.setKeyState("age", 25);
+    expect(callCount).toBe(0);
+  });
+
+  test("subscribe should handle multiple subscribers to same key", () => {
+    const observer = new StateObserver({ count: 0 });
+    let count1 = 0,
+      count2 = 0;
+
+    observer.subscribe("count", () => count1++);
+    observer.subscribe("count", () => count2++);
+
+    observer.setKeyState("count", 1);
+    expect(count1).toBe(1);
+    expect(count2).toBe(1);
+  });
+
+  test("subscribe should return unsubscribe function", () => {
+    const observer = new StateObserver({ name: "John" });
+    let callCount = 0;
+
+    const unsubscribe = observer.subscribe("name", () => {
+      callCount++;
+    });
+
+    observer.setKeyState("name", "Jane");
+    expect(callCount).toBe(1);
+
     unsubscribe();
-    observer.setKeyState("key1", "updatedValue");
-
-    expect(callback).not.toHaveBeenCalled();
+    observer.setKeyState("name", "Bob");
+    expect(callCount).toBe(1);
   });
 
-  // can subscribe to a key multiple times and receive updates for each subscription
-  test("should subscribe to a key multiple times and receive updates for each subscription", () => {
-    const observer = new StateObserver({ key1: "value1" });
-    const callback1 = jest.fn();
-    const callback2 = jest.fn();
+  // ============ subscribeToAll ============
+  test("subscribeToAll should call callback for any state change", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    let callCount = 0;
 
-    observer.subscribe("key1", callback1);
-    observer.subscribe("key1", callback2);
-    observer.setKeyState("key1", "updatedValue");
+    observer.subscribeToAll(() => {
+      callCount++;
+    });
 
-    expect(callback1).toHaveBeenCalled();
-    expect(callback2).toHaveBeenCalled();
+    observer.setKeyState("name", "Jane");
+    expect(callCount).toBe(1);
+
+    observer.setKeyState("age", 25);
+    expect(callCount).toBe(2);
   });
 
-  // can unsubscribe from a key that has no subscribers
-  test("should unsubscribe from a key that has no subscribers", () => {
-    const observer = new StateObserver({ key1: "value1" });
-    const callback = jest.fn();
+  test("subscribeToAll should receive full state object", () => {
+    const observer = new StateObserver({ name: "John", age: 30 });
+    let receivedState: unknown;
 
-    const unsubscribe = observer.subscribe("key2", callback);
+    observer.subscribeToAll((state) => {
+      receivedState = state;
+    });
+
+    observer.setKeyState("name", "Jane");
+    expect(receivedState).toEqual({ name: "Jane", age: 30 });
+  });
+
+  test("subscribeToAll should return unsubscribe function", () => {
+    const observer = new StateObserver({ count: 0 });
+    let callCount = 0;
+
+    const unsubscribe = observer.subscribeToAll(() => {
+      callCount++;
+    });
+
+    observer.setKeyState("count", 1);
+    expect(callCount).toBe(1);
+
     unsubscribe();
-    //@ts-ignore
-    observer.setKeyState("key2", "updatedValue");
-
-    expect(callback).not.toHaveBeenCalled();
+    observer.setKeyState("count", 2);
+    expect(callCount).toBe(1);
   });
 
-  // can set a new state with a key that does not exist in the default state
-  test("should set a new state with a key that does not exist in the default state", () => {
-    const observer = new StateObserver({ key1: "value1" });
-    const callback = jest.fn();
+  // ============ Edge cases ============
+  test("should handle rapid successive updates", () => {
+    const observer = new StateObserver({ count: 0 });
+    let callCount = 0;
 
-    observer.subscribe("key2", callback);
-    //@ts-ignore
-    observer.setState({ key2: "updatedValue" });
-
-    expect(observer.state).toEqual({ key1: "value1", key2: "updatedValue" });
-    expect(callback).toHaveBeenCalled();
-  });
-
-  test("should return the default value when the key exists in the state object", () => {
-    const stateObserver = new StateObserver({ key: "value" });
-    expect(stateObserver.getDefaultValue("key")).toBe("value");
-  });
-
-  // Can subscribe a function to all keys
-  test("should subscribe a function to all keys", () => {
-    const observer = new StateObserver<number>(0);
-    const fn = jest.fn();
-
-    observer.subscribeToAll(fn);
-
-    expect(observer.allKeysSubscribers).toContain(fn);
-  });
-
-  // Notifies all subscribers of the updated key value.
-  test("should notify all subscribers of the updated key value", () => {
-    const stateObserver = new StateObserver({ key: "initialValue" });
-
-    const fn = jest.fn();
-
-    stateObserver.subscribeToAll(fn);
-
-    const key = "key";
-    const value = "updatedValue";
-    let notifiedValue;
-
-    stateObserver.subscribe(key, (newValue) => {
-      notifiedValue = newValue;
+    observer.subscribe("count", () => {
+      callCount++;
     });
 
-    stateObserver.setKeyState(key, value);
+    observer.setKeyState("count", 1);
+    observer.setKeyState("count", 2);
+    observer.setKeyState("count", 3);
 
-    expect(notifiedValue).toBe(value);
-    expect(fn).toHaveBeenCalled();
+    expect(observer.state.count).toBe(3);
+    expect(callCount).toBe(3);
   });
 
-  test("should work setKeyState and restore the value", (done) => {
-    const stateObserver = new StateObserver({ key: "initialValue" });
+  test("should handle setting same value twice", () => {
+    const observer = new StateObserver({ name: "John" });
+    let callCount = 0;
 
-    let updatedValueHasBeenCalled = false;
-    let restoreValueHasBeenCalled = false;
-
-    stateObserver.state.key = "restoreValue";
-
-    stateObserver.subscribe("key", (newValue) => {
-      console.log("newValue", newValue);
-      if (newValue === "updatedValue") {
-        updatedValueHasBeenCalled = true;
-      }
-
-      if (newValue === "restoreValue") {
-        restoreValueHasBeenCalled = true;
-      }
+    observer.subscribe("name", () => {
+      callCount++;
     });
 
-    const restore = stateObserver.setKeyState("key", "updatedValue");
+    observer.setKeyState("name", "John");
+    observer.setKeyState("name", "John");
 
-    setTimeout(() => {
-      restore();
-
-      expect(updatedValueHasBeenCalled).toBeTrue();
-      expect(restoreValueHasBeenCalled).toBeTrue();
-
-      done();
-    }, 1000);
+    expect(callCount).toBe(2);
   });
 
-  test("should work setOptimisticState and restore the value", (done) => {
-    const stateObserver = new StateObserver({
-      key: "initialValue",
-      key2: "initialValue2",
+  test("should handle complex nested objects in setState", () => {
+    const observer = new StateObserver({
+      user: { name: "John", address: { city: "NYC" } },
     });
 
-    const checks = {
-      key: {
-        updatedValueHasBeenCalled: false,
-        restoreValueHasBeenCalled: false,
+    observer.setState({
+      user: {
+        name: "Jane",
+        address: { city: "LA" },
       },
-      key2: {
-        updatedValueHasBeenCalled: false,
-        restoreValueHasBeenCalled: false,
-      },
-    };
-
-    stateObserver.state.key = "restoreValue";
-    stateObserver.state.key2 = "restoreValue";
-
-    stateObserver.subscribeToAll((newValue) => {
-      Object.entries(newValue).forEach(([key, value]) => {
-        if (value === "updatedValue") {
-          checks[key].updatedValueHasBeenCalled = true;
-        }
-
-        if (value === "restoreValue") {
-          checks[key].restoreValueHasBeenCalled = true;
-        }
-      });
     });
 
-    const restore = stateObserver.setState({
-      key: "updatedValue",
-      key2: "updatedValue",
+    expect(observer.state.user.name).toBe("Jane");
+    expect(observer.state.user.address.city).toBe("LA");
+  });
+
+  test("setState with nested objects should call subscribers correctly", () => {
+    const observer = new StateObserver({
+      user: { name: "John" },
     });
 
-    setTimeout(() => {
-      restore();
+    let callCount = 0;
 
-      Object.keys(checks).forEach((key) => {
-        expect(checks[key].updatedValueHasBeenCalled).toBeTrue();
-        expect(checks[key].restoreValueHasBeenCalled).toBeTrue();
-      });
+    observer.subscribe("user", (value) => {
+      callCount++;
+      expect(value.name).toBe("Jane");
+    });
 
-      done();
-    }, 1000);
+    observer.setState({ user: { name: "Jane" } });
+    expect(callCount).toBe(1);
+  });
+
+  test("should handle empty state", () => {
+    const observer = new StateObserver({});
+    expect(observer.state).toEqual({});
+    expect(observer.subscribers.size).toBe(0);
+  });
+
+  test("multiple unsubscribes of same key should work independently", () => {
+    const observer = new StateObserver({ value: 0 });
+    let count1 = 0,
+      count2 = 0;
+
+    const unsub1 = observer.subscribe("value", () => count1++);
+    const unsub2 = observer.subscribe("value", () => count2++);
+
+    observer.setKeyState("value", 1);
+    expect(count1).toBe(1);
+    expect(count2).toBe(1);
+
+    unsub1();
+    observer.setKeyState("value", 2);
+    expect(count1).toBe(1);
+    expect(count2).toBe(2);
+
+    unsub2();
+    observer.setKeyState("value", 3);
+    expect(count1).toBe(1);
+    expect(count2).toBe(2);
+  });
+
+  test("should handle revert chain", () => {
+    const observer = new StateObserver({ count: 0 });
+
+    const revert1 = observer.setKeyState("count", 1);
+    const revert2 = observer.setKeyState("count", 2);
+    const revert3 = observer.setKeyState("count", 3);
+
+    expect(observer.state.count).toBe(3);
+
+    revert3();
+    expect(observer.state.count).toBe(2);
+
+    revert2();
+    expect(observer.state.count).toBe(1);
+
+    revert1();
+    expect(observer.state.count).toBe(0);
+  });
+
+  test("setState should notify all subscribers", () => {
+    const observer = new StateObserver({ a: 1, b: 2 });
+    let aCount = 0,
+      bCount = 0,
+      allCount = 0;
+
+    observer.subscribe("a", () => aCount++);
+    observer.subscribe("b", () => bCount++);
+    observer.subscribeToAll(() => allCount++);
+
+    observer.setState({ a: 10, b: 20 });
+
+    expect(aCount).toBe(1);
+    expect(bCount).toBe(1);
+    expect(allCount).toBe(1);
+  });
+
+  test("should preserve other subscribers when unsubscribing", () => {
+    const observer = new StateObserver({ msg: "hello" });
+    const callback1 = () => {};
+    const callback2 = () => {};
+
+    const unsub1 = observer.subscribe("msg", callback1);
+    observer.subscribe("msg", callback2);
+
+    unsub1();
+
+    const subscribers = observer.subscribers.get("msg") || [];
+    expect(subscribers.length).toBe(1);
   });
 });

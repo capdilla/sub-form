@@ -20,7 +20,8 @@
     "build": "rm -rf build 2> /dev/null && vite build --config vite.lib.config.ts && dts-bundle-generator --no-check --project tsconfig.build.json -o build/index.d.ts src/lib/index.ts && bun run scripts/post-build.js",
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
-    "test": "bun test"
+    "test": "bun test",
+    "test:coverage:ci": "bun run scripts/check-coverage.js"
   },
   "peerDependencies": {
     "react": "^18.2.0"

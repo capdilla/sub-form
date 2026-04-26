@@ -31,7 +31,7 @@ export function useWatchForm<T, V>(
       fields: state,
       isFormValid: checkIfFormIsValid(state),
     };
-  }, []);
+  }, [checkIfFormIsValid]);
 
   const [state, setState] = useState<V | GetFormState<T> | undefined>(() => {
     const state = buildState(core?.stateObserver?.current.state);
@@ -75,7 +75,7 @@ export function useWatchForm<T, V>(
     return () => {
       unSub();
     };
-  }, []);
+  }, [core, checkIfFormIsValid, props]);
 
   return state as GetFormState<T> | V;
 }

@@ -101,10 +101,10 @@ export function useValue<T, S, K extends keyof S = keyof S>({
     return () => {
       unsubscribe();
     };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [key, stateObserver, observeValue, deepEqual, deepEqualFn]);
 
   //Execute when deps change
+   
   useEffect(() => {
     const defaultValue = stateObserver.getDefaultValue(key as string);
 
@@ -124,6 +124,7 @@ export function useValue<T, S, K extends keyof S = keyof S>({
 
       return prevState;
     });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, deps);
 
   return { value } as UseValueResult<T> | UseValueResult<State<S>[K]>;

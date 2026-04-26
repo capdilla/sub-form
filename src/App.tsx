@@ -2,8 +2,6 @@ import { useEffect, useState } from "react";
 import "./App.css";
 
 import { components } from "./components/Fields";
-import { TestSubState, TestUseState } from "./components/TestSubState";
-// import { TestSubState } from "./components/TestSubState";
 
 import {
   createFormInstance,
@@ -117,7 +115,6 @@ const state = new CreateSubState<St>({
 
 function App() {
   const [form, setForm] = useState(1);
-  const [val, setVal] = useState("");
 
   useEffect(() => {
     setTimeout(() => {
@@ -131,8 +128,6 @@ function App() {
     getFormValues,
     updateFormState,
     getFormState,
-    setShowValidation,
-    revalidateForm,
   } = useForm({
     onFormChange: (formState) => {
       state.observer.setKeyState("person", {

@@ -1,110 +1,139 @@
-import { test, describe, expect } from "bun:test";
-import { renderHook } from "@testing-library/react";
-import { useForm } from "../useForm";
+/* eslint-disable @typescript-eslint/no-var-requires */
+import { test, describe, expect, mock } from "bun:test";
 
-describe("useForm", () => {
-  // Returns an object with fields, getFormState, getFormValues and updateFormState properties
-  test("should return an object with fields, getFormState, getFormValues, and updateFormState properties", () => {
-    const props = {
-      defaultState: {},
-      fields: [],
-    };
+mock.module("react", () => ({
+  useRef: <T,>(value: T) => ({ current: value }),
+  useCallback: <T extends (...args: never[]) => unknown>(fn: T) => fn,
+  useMemo: <T,>(fn: () => T) => fn(),
+  useEffect: (fn: () => void | (() => void)) => {
+    fn();
+  },
+}));
 
-    const { result } = renderHook(() => useForm(props));
-
-    expect(result.current).toHaveProperty("fields");
-    expect(result.current).toHaveProperty("getFormState");
-    expect(result.current).toHaveProperty("getFormValues");
-    expect(result.current).toHaveProperty("updateFormState");
+describe("useForm module", () => {
+  test("should export useForm function", () => {
+    const mod = require("../useForm");
+    expect(typeof mod.useForm).toBe("function");
   });
 
-  // fields property is an array of objects with componentProps property containing onChange and value properties
-  test("should return fields property as an array of objects with componentProps property containing onChange and value properties", () => {
-    const props = {
-      defaultState: {},
-      fields: [
-        {
-          name: "field1",
-          validation: {},
-          componentProps: {},
-        },
-        {
-          name: "field2",
-          validation: {},
-          componentProps: {},
-        },
-      ],
-    };
-
-    const { result } = renderHook(() => useForm(props));
-
-    expect(result.fields).toHaveLength(2);
-    expect(result.fields[0]).toHaveProperty("componentProps");
-    expect(result.fields[0].componentProps).toHaveProperty("onChange");
-    expect(result.fields[0].componentProps).toHaveProperty("value");
-    expect(result.fields[1]).toHaveProperty("componentProps");
-    expect(result.fields[1].componentProps).toHaveProperty("onChange");
-    expect(result.fields[1].componentProps).toHaveProperty("value");
+  test("useForm should be callable", () => {
+    const mod = require("../useForm");
+    expect(mod.useForm).toBeDefined();
   });
 
-  // getFormState returns an object with isFormValid and fields properties
-  test("should return an object with isFormValid and fields properties when calling getFormState", () => {
-    const props = {
-      defaultState: {},
-      fields: [],
-    };
-
-    const { result } = renderHook(() => useForm(props));
-    const formState = result.current.getFormState();
-
-    expect(formState).toHaveProperty("isFormValid");
-    expect(formState).toHaveProperty("fields");
+  test("useForm export should be accessible", () => {
+    const mod = require("../useForm");
+    expect(mod).toBeDefined();
+    expect(Object.keys(mod).includes("useForm")).toBe(true);
   });
 
-  // createDefaultState returns an empty object if defaultState is not provided
-  test("should return an empty object when calling createDefaultState with no defaultState provided", () => {
-    const defaultState = undefined;
+  test("should build default state and expose fields", () => {
+    const { useForm } = require("../useForm");
 
-    const result = createDefaultState(defaultState);
+    const fields = [
+      { name: "name", type: "Input", component: () => null, validation: { required: true } },
+      { name: "age", type: "Input", component: () => null, validation: { required: true } },
+    ];
 
-    expect(result).toEqual({});
-  });
-
-  // validateField returns an object with isValid true and errorMessage empty string if no validation is provided
-  test("should return an object with isValid true and errorMessage empty string when calling validateField with no validation provided", () => {
-    const field = {
-      name: "field1",
-      validation: undefined,
-    };
-    const formState = {};
-
-    const result = validateField(field, formState);
-
-    expect(result).toEqual({
-      isValid: true,
-      errorMessage: "",
+    const form = useForm({
+      defaultState: { name: "", age: 0 },
+      fields,
     });
+
+    const state = form.getFormState();
+    expect(state.fields.name).toBeDefined();
+    expect(state.fields.age).toBeDefined();
+    expect(form.fields.name.componentProps.value).toBeDefined();
+    expect(typeof form.fields.name.componentProps.onChange).toBe("function");
   });
 
-  // validateField returns an object with isValid false and errorMessage FIELD_REQUIRED if validation.required is true and field value is falsy
-  test("should return an object with isValid false and errorMessage FIELD_REQUIRED when calling validateField with validation.required true and falsy field value", () => {
-    const field = {
-      name: "field1",
-      validation: {
-        required: true,
-      },
-    };
-    const formState = {
-      field1: {
-        value: "",
-      },
-    };
+  test("on field change should update form values", () => {
+    const { useForm } = require("../useForm");
 
-    const result = validateField(field, formState);
+    const fields = [
+      { name: "name", type: "Input", component: () => null, validation: { required: true } },
+    ];
 
-    expect(result).toEqual({
-      isValid: false,
-      errorMessage: "FIELD_REQUIRED",
+    const form = useForm({
+      defaultState: { name: "" },
+      fields,
     });
+
+    form.fields.name.componentProps.onChange("john");
+    const values = form.getFormValues();
+    expect(values.values.name).toBe("john");
+  });
+
+  test("setShowValidation should update validation visibility", () => {
+    const { useForm } = require("../useForm");
+
+    const fields = [
+      { name: "name", type: "Input", component: () => null, validation: { required: true } },
+    ];
+
+    const form = useForm({
+      defaultState: { name: "" },
+      fields,
+    });
+
+    form.setShowValidation(true);
+    expect(form.getFormState().fields.name.validation.showValidation).toBe(true);
+  });
+
+  test("revalidateForm should recompute required validations", () => {
+    const { useForm } = require("../useForm");
+
+    const fields = [
+      { name: "name", type: "Input", component: () => null, validation: { required: true } },
+    ];
+
+    const form = useForm({
+      defaultState: { name: "" },
+      fields,
+    });
+
+    form.revalidateForm({ showValidation: true });
+    const state = form.getFormState();
+    expect(state.fields.name.validation.showValidation).toBe(true);
+    expect(state.fields.name.validation.isValid).toBe(false);
+  });
+
+  test("updateFormState should replace state from partial values", () => {
+    const { useForm } = require("../useForm");
+
+    const fields = [
+      { name: "name", type: "Input", component: () => null, validation: { required: true } },
+      { name: "surname", type: "Input", component: () => null, validation: { required: true } },
+    ];
+
+    const form = useForm({
+      defaultState: { name: "", surname: "" },
+      fields,
+    });
+
+    form.updateFormState({ name: "john", surname: "doe" });
+    const values = form.getFormValues();
+    expect(values.values.name).toBe("john");
+    expect(values.values.surname).toBe("doe");
+  });
+
+  test("should invoke onFormChange when state changes", () => {
+    const { useForm } = require("../useForm");
+    let calls = 0;
+
+    const fields = [
+      { name: "name", type: "Input", component: () => null, validation: { required: true } },
+    ];
+
+    const form = useForm({
+      defaultState: { name: "" },
+      fields,
+      onFormChange: () => {
+        calls++;
+      },
+    });
+
+    form.fields.name.componentProps.onChange("john");
+    expect(calls).toBeGreaterThan(0);
   });
 });

@@ -131,7 +131,8 @@ export function useForm<T>(props: FormProps<T>): UseFormValue<T> {
     return () => {
       unsubscribe();
     };
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [props.onFormChange, formState]);
 
   const onFieldChange = useCallback(
     (field: Field<T>, value: unknown) => {
